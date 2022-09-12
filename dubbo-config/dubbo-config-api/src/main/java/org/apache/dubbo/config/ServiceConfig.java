@@ -215,6 +215,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         if (!isOnlyInJvm()) {
             checkRegistry();
         }
+
         this.refresh();
 
         if (StringUtils.isEmpty(interfaceName)) {

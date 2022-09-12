@@ -130,10 +130,15 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
     public CompositeConfiguration getConfiguration(String prefix, String id) {
         CompositeConfiguration compositeConfiguration = new CompositeConfiguration();
         // Config center has the highest priority
+        //jvm
         compositeConfiguration.addConfiguration(this.getSystemConfig(prefix, id));
+        // 操作系统
         compositeConfiguration.addConfiguration(this.getEnvironmentConfig(prefix, id));
+        // 配置中心app
         compositeConfiguration.addConfiguration(this.getAppExternalConfig(prefix, id));
+        // 配置中心 global
         compositeConfiguration.addConfiguration(this.getExternalConfig(prefix, id));
+        // dubbo.properties
         compositeConfiguration.addConfiguration(this.getPropertiesConfig(prefix, id));
         return compositeConfiguration;
     }
