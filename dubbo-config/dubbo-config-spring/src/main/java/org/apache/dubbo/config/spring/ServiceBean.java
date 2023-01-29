@@ -102,12 +102,17 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     }
 
     /**
+     * 暴露服务
+     *
      * @since 2.6.5
      */
     @Override
     public void exported() {
+        // 调用父类方法进行暴露
         super.exported();
+
         // Publish ServiceBeanExportedEvent
+        // 发布一个事件
         publishExportEvent();
     }
 

@@ -242,7 +242,10 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     }
 
     public void exported() {
+
+        // 获取
         List<URL> exportedURLs = this.getExportedUrls();
+
         exportedURLs.forEach(url -> {
             // dubbo2.7.x does not register serviceNameMapping information with the registry by default.
             // Only when the user manually turns on the service introspection, can he register with the registration center.
@@ -251,6 +254,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 ServiceNameMapping.getExtension(parameters != null ? parameters.get(MAPPING_KEY) : null).map(url);
             }
         });
+
         // dispatch a ServiceConfigExportedEvent since 2.7.4
         dispatch(new ServiceConfigExportedEvent(this));
     }
@@ -327,6 +331,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 serviceMetadata
         );
 
+        // 加载所配置的注册中心的URL
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
         int protocolConfigNum = protocols.size();
