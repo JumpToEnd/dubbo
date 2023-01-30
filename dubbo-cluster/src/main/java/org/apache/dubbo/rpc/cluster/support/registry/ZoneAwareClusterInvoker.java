@@ -64,14 +64,22 @@ public class ZoneAwareClusterInvoker<T> extends AbstractClusterInvoker<T> {
         super(directory);
     }
 
+    /**
+     *
+     * @param invocation    invocation
+     * @param invokers      注册中心 对应的URL
+     * @param loadbalance   负载均衡策略
+     * @return
+     * @throws RpcException
+     */
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(Invocation invocation, final List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         // First, pick the invoker (XXXClusterInvoker) that comes from the local registry, distinguish by a 'preferred' key.
+        // 有没有设置 首选 注册中心，如果有的话，直接使用设置的
         for (Invoker<T> invoker : invokers) {
             ClusterInvoker<T> clusterInvoker = (ClusterInvoker<T>) invoker;
-            if (clusterInvoker.isAvailable() && clusterInvoker.getRegistryUrl()
-                    .getParameter(PREFER_REGISTRY_KEY, false)) {
+            if (clusterInvoker.isAvailable() && clusterInvoker.getRegistryUrl().getParameter(PREFER_REGISTRY_KEY, false)) {
                 return clusterInvoker.invoke(invocation);
             }
         }

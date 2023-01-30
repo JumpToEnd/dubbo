@@ -198,13 +198,19 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         this.services = services;
     }
 
+    /**
+     * 消费者 入口
+     * @return
+     */
     public synchronized T get() {
         if (destroyed) {
             throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
         }
+
         if (ref == null) {
             init();
         }
+
         return ref;
     }
 
@@ -310,6 +316,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        // 创建代理对象
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);
@@ -336,6 +343,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
         } else {
             urls.clear();
+            // 注册中心的url
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
                 String[] us = SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
@@ -351,7 +359,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                         }
                     }
                 }
-            } else { // assemble URL from register center's configuration
+            }
+
+            else { // assemble URL from register center's configuration
                 // if protocols not injvm checkRegistry
                 if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
                     checkRegistry();
@@ -374,8 +384,20 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 }
             }
 
+            /*
+                生成 invoker
+             */
+            // 如果只有一个 注册中心的地址
             if (urls.size() == 1) {
+                // SPI
+                // 对调用 RegistryProtocol 的 refer 方法 或者 DubboProtocol  的 refer 方法
+                // 根据 url 信息 找到 拓展点
+                // Protocol 的两个包装类
+                // 1. ProtocolListenerWrapper
+                // 2. ProtocolFilterWrapper
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
+
+
             } else {
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
@@ -389,12 +411,24 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                     }
                 }
 
+                // 注册中心 URL 可用
                 if (registryURL != null) { // registry url is available
                     // for multi-subscription scenario, use 'zone-aware' policy by default
+                    // 注册中心 URL 中 有没有配置 cluster 参数
+                    // 如果没有配置的话默认使用 zone-aware
                     String cluster = registryURL.getParameter(CLUSTER_KEY, ZoneAwareCluster.NAME);
                     // The invoker wrap sequence would be: ZoneAwareClusterInvoker(StaticDirectory) -> FailoverClusterInvoker(RegistryDirectory, routing happens here) -> Invoker
+                    // 把多个 invoker 合并 成一个 invoker
+                    // 此处的 Cluster =>  ZoneAwareCluster  （ZoneAwareClusterInvoker）
+                    // 层次结构：
+                    // ZoneAwareClusterInvoker(StaticDirectory) -> FailoverClusterInvoker(RegistryDirectory, routing happens here) -> Invoker
+
+                    // MockClusterWrapper 包装类 （MockClusterInvoker(directory, this.cluster.join(directory))）
                     invoker = Cluster.getCluster(cluster, false).join(new StaticDirectory(registryURL, invokers));
-                } else { // not a registry url, must be direct invoke.
+                }
+                // 注册中心 URL 不可用
+                // 一定是直接调用
+                else { // not a registry url, must be direct invoke.
                     String cluster = CollectionUtils.isNotEmpty(invokers)
                             ?
                             (invokers.get(0).getUrl() != null ? invokers.get(0).getUrl().getParameter(CLUSTER_KEY, ZoneAwareCluster.NAME) :

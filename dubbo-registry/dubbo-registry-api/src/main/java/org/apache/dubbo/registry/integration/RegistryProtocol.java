@@ -196,8 +196,12 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
+
+        // 获取  注册中心  URL
         URL registryUrl = getRegistryUrl(originInvoker);
+
         // url to export locally
+        // 获取 服务提供者 URL
         URL providerUrl = getProviderUrl(originInvoker);
 
         // Subscribe the override data
@@ -206,19 +210,28 @@ public class RegistryProtocol implements Protocol {
         //  subscription information to cover.
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
+
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
+
         // export invoker
+        // 启动Netty等服务
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
+        // 生成注册中心
         final Registry registry = getRegistry(originInvoker);
+
+        // 生成 存入到注册中心的 providerUrl
+        // 会对 服务提供者的URL 进行简化
         final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
 
         // decide if we need to delay publish
+        // 决定是否要延迟发布
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
+            // 服务注册
             registry.register(registeredProviderUrl);
         }
 
@@ -460,14 +473,22 @@ public class RegistryProtocol implements Protocol {
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+
+        // 获取 注册中心 URL
         url = getRegistryUrl(url);
+
+        // 生成 注册中心 对象
         Registry registry = getRegistry(url);
+
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
         }
 
         // group="a,b" or group="*"
+        // qs 表示 queryString
+        // 表示 url 中的参数 refer=？【refer就是消费者端配置的参数map，类似于服务暴漏】
         Map<String, String> qs = StringUtils.parseQueryString(url.getParameterAndDecoded(REFER_KEY));
+        // 获取 group
         String group = qs.get(GROUP_KEY);
         if (group != null && group.length() > 0) {
             if ((COMMA_SPLIT_PATTERN.split(group)).length > 1 || "*".equals(group)) {
@@ -475,13 +496,20 @@ public class RegistryProtocol implements Protocol {
             }
         }
 
+        // 默认 FailoverCluster (FailoverClusterInvoker)
         Cluster cluster = Cluster.getCluster(qs.get(CLUSTER_KEY));
+
         return doRefer(cluster, registry, type, url, qs);
     }
 
     protected <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url, Map<String, String> parameters) {
+
+        // 生成 消费者 url
         URL consumerUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
+
+        //
         ClusterInvoker<T> migrationInvoker = getMigrationInvoker(this, cluster, registry, type, url, consumerUrl);
+
         return interceptInvoker(migrationInvoker, url, consumerUrl);
     }
 
@@ -544,8 +572,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     protected List<RegistryProtocolListener> findRegistryProtocolListeners(URL url) {
-        return ExtensionLoader.getExtensionLoader(RegistryProtocolListener.class)
-                .getActivateExtension(url, REGISTRY_PROTOCOL_LISTENER_KEY);
+        return ExtensionLoader.getExtensionLoader(RegistryProtocolListener.class).getActivateExtension(url, REGISTRY_PROTOCOL_LISTENER_KEY);
     }
 
     // available to test

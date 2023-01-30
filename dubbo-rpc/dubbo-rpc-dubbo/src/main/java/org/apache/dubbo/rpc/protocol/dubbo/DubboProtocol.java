@@ -287,6 +287,8 @@ public class DubboProtocol extends AbstractProtocol {
         // export service.
         String key = serviceKey(url);
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
+
+        // exporterMap 很重要
         exporterMap.addExportMap(key, exporter);
 
         //export an stub service for dispatching event
@@ -303,7 +305,9 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 开启 NettyServer
         openServer(url);
+        // 特殊的一些序列化机制
         optimizeSerialization(url);
 
         return exporter;

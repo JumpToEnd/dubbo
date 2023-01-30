@@ -75,8 +75,10 @@ public abstract class AbstractProxyFactory implements ProxyFactory {
         interfaces.add(invoker.getInterface());
         interfaces.addAll(Arrays.asList(INTERNAL_INTERFACES));
 
+        // 使用 子类  JavassistProxyFactory
         return getProxy(invoker, interfaces.toArray(new Class<?>[0]));
     }
+
 
     public abstract <T> T getProxy(Invoker<T> invoker, Class<?>[] types);
 

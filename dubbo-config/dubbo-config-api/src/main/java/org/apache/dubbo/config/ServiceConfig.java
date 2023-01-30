@@ -385,10 +385,13 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         AbstractConfig.appendParameters(map, provider);
         AbstractConfig.appendParameters(map, protocolConfig);
         AbstractConfig.appendParameters(map, this);
+
         MetadataReportConfig metadataReportConfig = getMetadataReportConfig();
         if (metadataReportConfig != null && metadataReportConfig.isValid()) {
             map.putIfAbsent(METADATA_KEY, REMOTE_METADATA_STORAGE_TYPE);
         }
+
+        // 服务中的某些方法参数
         if (CollectionUtils.isNotEmpty(getMethods())) {
             for (MethodConfig method : getMethods()) {
                 AbstractConfig.appendParameters(map, method, method.getName());
@@ -469,8 +472,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             }
         }
 
-        /**
+        /*
          * Here the token value configured by the provider is used to assign the value to ServiceConfig#token
+         * token 防止拼接调用
+         * 默认 是 uuid
+         *
          */
         if (ConfigUtils.isEmpty(token) && provider != null) {
             token = provider.getToken();
@@ -483,6 +489,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 map.put(TOKEN_KEY, token);
             }
         }
+
+
         //init serviceMetadata attachments
         serviceMetadata.getAttachments().putAll(map);
 
@@ -490,6 +498,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         //
         String host = findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = findConfigedPorts(protocolConfig, name, map, protocolConfigNum);
+
         // 构建 URL
         URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
 
@@ -547,17 +556,36 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         }
 
                         // For providers, this is used to enable custom proxy to generate invoker
+                        // 代理模式配置 有 javaassist、jdk 两种
                         String proxy = url.getParameter(PROXY_KEY);
                         if (StringUtils.isNotEmpty(proxy)) {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
 
+                        // Invoker 简单理解为 执行器
+                        // 调用 invoker.invoke() ，即可执行服务
+
                         //
+                        // ref => 具体的实现类的bean对象
+                        // registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()) => 把 服务的url 当做参数传入到了 注册中心的url当中，然后进行编码
                         Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass,
                                 registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
+
+                        // 包装类
+                        // 持有 invoker 和 当前类（配置信息）
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
                         // 暴露服务
+                        // 使用特定的协议进行服务到处，此处使用 RegistryProtocol
+                        // 1. 先使用 RegistryProtocol 进行服务注册
+                        // 2. 再使用 DubboProtocol 进行导出
+
+                        // 决定使用哪个 Protocol 的实现类
+                        // 是由SPI机制决定的，具体说来，就是由 wrapperInvoker.getUrl （封装的URL对象）来决定的
+                        // 当前最外层是 registry:// ，所以使用 RegistryProtocol
+                        // registry://   => RegistryProtocol
+                        // zookeeper://  => ZookeeperProtocol
+                        // dubbo://      => DubboProtocol
                         Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
 
                         exporters.add(exporter);

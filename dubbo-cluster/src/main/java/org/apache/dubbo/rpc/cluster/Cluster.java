@@ -29,6 +29,7 @@ import org.apache.dubbo.rpc.RpcException;
  * <a href="http://en.wikipedia.org/wiki/Computer_cluster">Cluster</a>
  * <a href="http://en.wikipedia.org/wiki/Fault-tolerant_system">Fault-Tolerant</a>
  *
+ * 默认是 failover
  */
 @SPI(Cluster.DEFAULT)
 public interface Cluster {
@@ -54,6 +55,7 @@ public interface Cluster {
         if (StringUtils.isEmpty(name)) {
             name = Cluster.DEFAULT;
         }
+        // 从 SPI 获取
         return ExtensionLoader.getExtensionLoader(Cluster.class).getExtension(name, wrap);
     }
 }
