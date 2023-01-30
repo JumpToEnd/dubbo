@@ -87,6 +87,7 @@ import static org.springframework.util.ClassUtils.resolveClassName;
 public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProcessor, EnvironmentAware,
         ResourceLoaderAware, BeanClassLoaderAware {
 
+    // @Service、@DubboService、@com.alibaba.dubbo.config.annotation.Service
     private static final List<Class<? extends Annotation>> serviceAnnotationTypes = asList(
             // @since 2.7.7 Add the @DubboService , the issue : https://github.com/apache/dubbo/issues/6007
             DubboService.class,
@@ -286,6 +287,8 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
 
         String annotatedServiceBeanName = beanDefinitionHolder.getBeanName();
 
+        // 构建 ServiceBean 的 BeanDefinition，
+        // 并且把  服务BeanDefinition 的 名字 annotatedServiceBeanName，设置到 ref 属性中
         AbstractBeanDefinition serviceBeanDefinition =
                 buildServiceBeanDefinition(service, serviceAnnotationAttributes, interfaceClass, annotatedServiceBeanName);
 
@@ -394,9 +397,11 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
 
         MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();
 
+        // 这几个属性比较特殊，引用类型
         String[] ignoreAttributeNames = of("provider", "monitor", "application", "module", "registry", "protocol",
                 "interface", "interfaceName", "parameters");
 
+        // 把 @Service 中相关的属性 赋值到 ServiceBean中
         propertyValues.addPropertyValues(new AnnotationPropertyValuesAdapter(serviceAnnotation, environment, ignoreAttributeNames));
 
         // References "ref" property to annotated-@Service Bean

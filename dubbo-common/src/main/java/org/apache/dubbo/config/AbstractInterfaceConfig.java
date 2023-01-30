@@ -333,6 +333,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     public void completeCompoundConfigs(AbstractInterfaceConfig interfaceConfig) {
+        // provider
         if (interfaceConfig != null) {
             if (application == null) {
                 setApplication(interfaceConfig.getApplication());
@@ -348,6 +349,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 setMonitor(interfaceConfig.getMonitor());
             }
         }
+
         if (module != null) {
             if (notHasSelfRegistryProperty()) {
                 setRegistries(module.getRegistries());
@@ -356,6 +358,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 setMonitor(module.getMonitor());
             }
         }
+        // 应用级别
         if (application != null) {
             if (notHasSelfRegistryProperty()) {
                 setRegistries(application.getRegistries());

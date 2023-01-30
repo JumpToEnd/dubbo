@@ -142,15 +142,23 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
                                        InjectionMetadata.InjectedElement injectedElement) throws Exception {
         /**
          * The name of bean that annotated Dubbo's {@link Service @Service} in local Spring {@link ApplicationContext}
+         *
+         * 构建一个 ServiceBean 的名字，在本地Spring容器内寻找
+         * 名字规则： ServiceBean:interfaceClassName:version:group
          */
         String referencedBeanName = buildReferencedBeanName(attributes, injectedType);
 
         /**
          * The name of bean that is declared by {@link Reference @Reference} annotation injection
+         *
+         * 根据 @Reference 注解的信息生成的 referenceBeanName
+         * 名字规则：@Reference(key=value,key=value....)
          */
         String referenceBeanName = getReferenceBeanName(attributes, injectedType);
 
         referencedBeanNameIdx.computeIfAbsent(referencedBeanName, k -> new TreeSet<String>()).add(referenceBeanName);
+
+        // 生成一个 ReferenceBean 对象
 
         ReferenceBean referenceBean = buildReferenceBeanIfAbsent(referenceBeanName, attributes, injectedType);
 
@@ -158,6 +166,9 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
 
         prepareReferenceBean(referencedBeanName, referenceBean, localServiceBean);
 
+        // 把 referenceBean 注册到 Spring 容器中去
+        //
+        // ReferenceBean 也是一个 FactoryBean，考虑到自动注入
         registerReferenceBean(referencedBeanName, referenceBean, localServiceBean, referenceBeanName);
 
         cacheInjectedReferenceBean(referenceBean, injectedElement);
@@ -365,9 +376,13 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
                                                      Class<?> referencedType)
             throws Exception {
 
+        // key   ： referenceBeanName
+        // value ： ReferenceBean对象
         ReferenceBean<?> referenceBean = referenceBeanCache.get(referenceBeanName);
 
+        // 如果没有 ReferenceBean对象，那么去构建一个
         if (referenceBean == null) {
+
             ReferenceBeanBuilder beanBuilder = ReferenceBeanBuilder
                     .create(attributes, applicationContext)
                     .interfaceClass(referencedType)

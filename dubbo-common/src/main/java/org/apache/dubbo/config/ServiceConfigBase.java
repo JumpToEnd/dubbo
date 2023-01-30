@@ -216,6 +216,7 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
 
     public void completeCompoundConfigs() {
         super.completeCompoundConfigs(provider);
+
         if (provider != null) {
             if (notHasSelfProtocolProperty()) {
                 setProtocols(provider.getProtocols());
